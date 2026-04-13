@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UmaPull</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <div class="container">
+        <div id="auth-section" class="header">
+            <h1>UmaPull</h1>
+            <button id="btn-login" class="btn">Connexion Twitch</button>
+        </div>
+
+        <div id="user-section" class="hidden">
+            <div class="header">
+                <h1>UmaPull</h1>
+                <button id="btn-logout" class="btn">Déconnexion</button>
+            </div>
+
+            <div class="progress-section">
+                <div class="progress-header">
+                    <span class="progress-label" id="progress-text">Chargement de la collection...</span>
+                    <span class="progress-percentage" id="progress-percent">0%</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div id="progress-fill" class="progress-bar-fill"></div>
+                </div>
+            </div>
+
+            <div class="filter-bar">
+                <div class="search-group">
+                    <svg style="position:absolute; left:12px; top:50%; transform:translateY(-50%); width:18px; height:18px; color:#555;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <input type="text" id="search-name" class="search-input" placeholder="Rechercher une carte...">
+                </div>
+                
+                <select id="filter-type" class="filter-select">
+                    <option value="all">Tous les types</option>
+                    <option value="speed">Speed</option>
+                    <option value="stamina">Stamina</option>
+                    <option value="power">Power</option>
+                    <option value="guts">Guts</option>
+                    <option value="intelligence">Wit</option>
+                    <option value="friend">Friend</option>
+                    <option value="group">Group</option>
+                </select>
+
+                <select id="filter-rarity" class="filter-select">
+                    <option value="all">Toutes les raretés</option>
+                    <option value="3">SSR</option>
+                    <option value="2">SR</option>
+                    <option value="1">R</option>
+                </select>
+
+                <select id="filter-status" class="filter-select">
+                    <option value="all">Tous les status</option>
+                    <option value="not-mlb">Incomplètes (< 4★)</option>
+                    <option value="mlb">Max Limit Break (4★)</option>
+                </select>
+            </div>
+
+            <div id="collection-grid" class="grid"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.7.2/vanilla-tilt.min.js"></script>
+
+    <script>
+        const SB_URL = 'https://bncrjtixiczhjijivgip.supabase.co';
+        const SB_KEY = 'sb_publishable_stQ59C3Whi35kXPGYpfVpg_MxkzQapT';
+        const JSON_URL = 'https://gametora.com/data/umamusume/support-cards.fcf72d70.json';
+        
+        const supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
+        let userCardsData = [];
+        let fullJsonData = [];
+
+        const TYPE_ICONS = {
+            'speed': 'https://gametora.com/images/umamusume/icons/utx_ico_obtain_00.png',
+            'stamina': 'https://gametora.com/images/umamusume/icons/utx_ico_obtain_01.png',
+            'power': 'https://gametora.com/images/umamusume/icons/utx_ico_obtain_02.png',
+            'guts': 'https://gametora.com/images/umamusume/icons/utx_ico_obtain_03.png',
+            'intelligence': 'https://gametora.com/images/umamusume/icons/utx_ico_obtain_04.png',
+            'friend': 'https://gametora.com/images/umamusume/icons/utx_ico_obtain_05.png',
+            'group': 'https://gametora.com/images/umamusume/icons/utx_ico_obtain_06.png'
+        };
+
+        const RARITY_ICONS = {
+            '3': 'https://gametora.com/images/umamusume/icons/utx_txt_rarity_03.png',
+            '2': 'https://gametora.com/images/umamusume/icons/utx_txt_rarity_02.png',
+            '1': 'https://gametora.com/images/umamusume/icons/utx_txt_rarity_01.png'
+        };
+
+        async function loadUI() {
+            const { data: { session }, error } = await supabaseClient.auth.getSession();
+            
+            if (session) {
+                if (window.location.hash) {
+                    window.history.replaceState(null, null, window.location.pathname);
+                }
+
+                document.getElementById('auth-section').classList.add('hidden');
+                document.getElementById('user-section').classList.remove('hidden');
+                const twitchId = session.user.user_metadata.provider_id;
+
+                const [sbRes, jsonRes] = await Promise.all([
+                    supabaseClient.from('collections').select('*').eq('user_id', twitchId),
+                    fetch(JSON_URL).then(r => r.json())
+                ]);
+
+                userCardsData = sbRes.data || [];
+                fullJsonData = jsonRes;
+                
+                if (typeof updateProgressBar === "function") updateProgressBar();
+                renderCollection();
+            } else {
+                document.getElementById('auth-section').classList.remove('hidden');
+                document.getElementById('user-section').classList.add('hidden');
+            }
+        }
+
+        function updateProgressBar() {
+            const totalPossible = fullJsonData.length;
+            const owned = userCardsData.length;
+            const percentage = totalPossible > 0 ? Math.round((owned / totalPossible) * 100) : 0;
+
+            document.getElementById('progress-text').innerText = `Collection : ${owned} / ${totalPossible} cartes`;
+            document.getElementById('progress-percent').innerText = `${percentage}%`;
+            document.getElementById('progress-fill').style.width = `${percentage}%`;
+        }
+
+        function renderCollection() {
+            const grid = document.getElementById('collection-grid');
+            const searchVal = document.getElementById('search-name').value.toLowerCase();
+            const typeVal = document.getElementById('filter-type').value;
+            const rarityVal = document.getElementById('filter-rarity').value;
+            const statusVal = document.getElementById('filter-status').value;
+
+            const filtered = userCardsData.filter(item => {
+                const info = fullJsonData.find(c => c.support_id === item.card_id);
+                if (!info) return false;
+
+                const firstDigit = item.card_id.toString()[0];
+                const matchesName = info.char_name.toLowerCase().includes(searchVal);
+                const matchesType = typeVal === 'all' || info.type === typeVal;
+                const matchesRarity = rarityVal === 'all' || firstDigit === rarityVal;
+                
+                let matchesStatus = true;
+                if (statusVal === 'mlb') matchesStatus = (item.mlb === 4);
+                if (statusVal === 'not-mlb') matchesStatus = (item.mlb < 4);
+
+                return matchesName && matchesType && matchesRarity && matchesStatus;
+            });
+
+            filtered.sort((a, b) => b.card_id - a.card_id);
+
+            const fragment = document.createDocumentFragment();
+            grid.innerHTML = '';
+
+            if (filtered.length > 0) {
+                filtered.forEach(item => {
+                    const info = fullJsonData.find(c => c.support_id === item.card_id);
+                    const firstDigit = item.card_id.toString()[0];
+                    
+                    let starsHtml = '';
+                    for (let i = 1; i <= 4; i++) {
+                        starsHtml += `<span class="star ${i <= item.mlb ? 'star-gold' : 'star-gray'}">★</span>`;
+                    }
+
+                    const cardEl = document.createElement('div');
+                    cardEl.innerHTML = `
+                        <a href="#" class="card-link" 
+                        data-tilt 
+                        data-tilt-max="20" 
+                        data-tilt-speed="400" 
+                        data-tilt-perspective="2000" 
+                        data-tilt-glare="false" 
+                        data-tilt-scale="1.02">
+                            <div class="card">
+                                <div class="card-image-container">
+                                    <img src="${RARITY_ICONS[firstDigit]}" class="rarity-overlay">
+                                    <img src="${TYPE_ICONS[info.type]}" class="type-overlay">
+                                    <img src="https://gametora.com/images/umamusume/supports/tex_support_card_${item.card_id}.png" class="card-art" alt="${info.char_name}" loading="lazy">
+                                </div>
+                                <div class="card-name">${info.char_name}</div>
+                                <div class="stars-row">${starsHtml}</div>
+                            </div>
+                        </a>`;
+                    fragment.appendChild(cardEl.firstElementChild);
+                });
+
+                grid.appendChild(fragment);
+                VanillaTilt.init(document.querySelectorAll(".card-link"));
+            } else {
+                grid.innerHTML = '<div id="empty-msg">Aucune carte trouvée.</div>';
+            }
+        }
+
+        let searchTimeout;
+        document.getElementById('search-name').oninput = () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(renderCollection, 100);
+        };
+        
+        document.getElementById('filter-type').onchange = renderCollection;
+        document.getElementById('filter-rarity').onchange = renderCollection;
+        document.getElementById('filter-status').onchange = renderCollection;
+
+        document.getElementById('btn-login').onclick = () => {
+            supabaseClient.auth.signInWithOAuth({ provider: 'twitch', options: { redirectTo: window.location.href } });
+        };
+
+        document.getElementById('btn-logout').onclick = async () => {
+            await supabaseClient.auth.signOut();
+            window.location.reload();
+        };
+
+        loadUI();
+    </script>
+</body>
+</html>
