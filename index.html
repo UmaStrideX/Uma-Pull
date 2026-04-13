@@ -209,7 +209,15 @@
         document.getElementById('filter-status').onchange = renderCollection;
 
         document.getElementById('btn-login').onclick = () => {
-            supabaseClient.auth.signInWithOAuth({ provider: 'twitch', options: { redirectTo: window.location.href } });
+            supabaseClient.auth.signInWithOAuth({ 
+                provider: 'twitch', 
+                options: { 
+                    redirectTo: 'https://umastridex.github.io/Uma-Pull/',
+                    queryParams: {
+                        force_verify: 'true'
+                    }
+                } 
+            });
         };
 
         document.getElementById('btn-logout').onclick = async () => {
