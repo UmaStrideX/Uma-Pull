@@ -6,7 +6,6 @@
     <title>UmaPull</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.7.0/vanilla-tilt.min.js"></script>
 </head>
 <body>
 
@@ -29,74 +28,80 @@
             <div id="top3-widget" class="progress-section">
                 <div style="display: flex; gap: 20px; flex-wrap: wrap;">
                     <div style="flex: 1; min-width: 200px;">
-                        <h3 style="margin-top:0; color:var(--twitch-purple)">Top Cartes</h3>
-                        <div id="rank-collection-mini" style="font-size: 0.9rem;"></div>
+                        <h3 style="margin-top:0; color:var(--gold); font-size: 0.9rem; text-transform: uppercase;">Top 3 Collection</h3>
+                        <div id="rank-collection-mini"></div>
                     </div>
                     <div style="flex: 1; min-width: 200px;">
-                        <h3 style="margin-top:0; color:var(--gold)">Top MLB</h3>
-                        <div id="rank-mlb-mini" style="font-size: 0.9rem;"></div>
+                        <h3 style="margin-top:0; color:var(--twitch-purple); font-size: 0.9rem; text-transform: uppercase;">Top 3 MLB</h3>
+                        <div id="rank-mlb-mini"></div>
                     </div>
                 </div>
             </div>
 
-            <div class="progress-section">
-                <div class="progress-header">
-                    <span id="progress-text" class="progress-label">Chargement...</span>
-                    <span id="progress-percent" class="progress-percentage">0%</span>
+            <div id="full-leaderboard" class="hidden">
+                <div class="filter-bar">
+                    <h2 style="margin:0; font-size: 1.2rem;">Classement Général</h2>
                 </div>
-                <div class="progress-bar-bg">
-                    <div id="progress-fill" class="progress-bar-fill"></div>
-                </div>
+                <div id="leaderboard-tables" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 40px;"></div>
             </div>
 
             <div id="main-collection-view">
+                <div class="progress-section">
+                    <div class="progress-header">
+                        <span class="progress-label" id="progress-text">Chargement...</span>
+                        <span class="progress-percentage" id="progress-percent">0%</span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div id="progress-fill" class="progress-bar-fill"></div>
+                    </div>
+                </div>
+
                 <div class="filter-bar">
                     <div class="search-group">
-                        <input type="text" id="search-name" class="search-input" placeholder="Rechercher une Uma...">
+                        <input type="text" id="search-name" class="search-input" placeholder="Rechercher une carte...">
                     </div>
+                    
                     <select id="filter-type" class="filter-select">
                         <option value="all">Tous les types</option>
                         <option value="speed">Speed</option>
                         <option value="stamina">Stamina</option>
                         <option value="power">Power</option>
                         <option value="guts">Guts</option>
-                        <option value="intelligence">Wisdom</option>
+                        <option value="intelligence">Wit</option>
                         <option value="friend">Friend</option>
                         <option value="group">Group</option>
                     </select>
+
                     <select id="filter-rarity" class="filter-select">
-                        <option value="all">Toutes rarités</option>
+                        <option value="all">Toutes les raretés</option>
                         <option value="3">SSR</option>
                         <option value="2">SR</option>
                         <option value="1">R</option>
                     </select>
+
                     <select id="filter-status" class="filter-select">
-                        <option value="all">Tout afficher</option>
-                        <option value="mlb">MLB uniquement</option>
-                        <option value="not-mlb">Non MLB</option>
+                        <option value="all">Tous les status</option>
+                        <option value="not-mlb">Incomplètes (< 4★)</option>
+                        <option value="mlb">Max Limit Break (4★)</option>
                     </select>
                 </div>
-                <div id="collection-grid" class="grid"></div>
-            </div>
 
-            <div id="full-leaderboard" class="hidden">
-                <div id="leaderboard-tables" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;"></div>
+                <div id="collection-grid" class="grid"></div>
             </div>
         </div>
     </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.7.2/vanilla-tilt.min.js"></script>
 
     <script>
         const SB_URL = 'https://bncrjtixiczhjijivgip.supabase.co';
         const SB_KEY = 'sb_publishable_stQ59C3Whi35kXPGYpfVpg_MxkzQapT';
         const JSON_URL = 'https://gametora.com/data/umamusume/support-cards.fcf72d70.json';
-
-        const supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
         
-        let myCardsData = [];
-        let displayedCardsData = [];
+        const supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
+        let userCardsData = [];
         let fullJsonData = [];
         let myTwitchId = null;
-        let myDisplayName = null;
 
         const TYPE_ICONS = {
             'speed': 'https://gametora.com/images/umamusume/icons/utx_ico_obtain_00.png',
@@ -115,111 +120,34 @@
         };
 
         async function loadUI() {
-            try {
-                const jsonRes = await fetch(JSON_URL);
-                fullJsonData = await jsonRes.json();
-                const { data: { session } } = await supabaseClient.auth.getSession();
+            const jsonRes = await fetch(JSON_URL);
+            fullJsonData = await jsonRes.json();
+
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            
+            if (session) {
+                myTwitchId = String(session.user.user_metadata.provider_id);
+                const displayName = session.user.user_metadata.display_name || session.user.user_metadata.full_name;
+                const userUuid = session.user.id;
+
+                await syncUserDatabase(myTwitchId, displayName, userUuid);
+
+                document.getElementById('auth-section').classList.add('hidden');
+                document.getElementById('user-section').classList.remove('hidden');
+
+                const { data } = await supabaseClient.from('collections').select('*').eq('user_id', myTwitchId);
+                userCardsData = data || [];
                 
-                if (session) {
-                    myTwitchId = String(session.user.user_metadata.provider_id);
-                    myDisplayName = session.user.user_metadata.display_name || session.user.user_metadata.full_name;
-                    
-                    await supabaseClient.from('users').upsert({ uuid: session.user.id, twitch_id: myTwitchId, display_name: myDisplayName }, { onConflict: 'twitch_id' });
-                    
-                    document.getElementById('auth-section').classList.add('hidden');
-                    document.getElementById('user-section').classList.remove('hidden');
-                    
-                    const { data } = await supabaseClient.from('collections').select('*').eq('user_id', myTwitchId);
-                    myCardsData = data || [];
-                    window.showMyCollection();
-                    fetchLeaderboards();
-                } else {
-                    document.getElementById('auth-section').classList.remove('hidden');
-                }
-            } catch (e) {
-                console.error(e);
+                updateProgressBar();
+                renderCollection();
+                fetchLeaderboards();
+            } else {
+                document.getElementById('auth-section').classList.remove('hidden');
             }
         }
 
-        window.showMyCollection = function() {
-            displayedCardsData = [...myCardsData];
-            resetViewStates();
-            updateProgressBar("Ma Collection");
-            renderCollection();
-        };
-
-        function updateProgressBar(titleOverride = null) {
-            const total = fullJsonData.length;
-            const owned = displayedCardsData.length;
-            const percent = total > 0 ? Math.round((owned / total) * 100) : 0;
-            const fill = document.getElementById('progress-fill');
-            
-            fill.classList.remove('finished');
-            fill.style.transition = 'none';
-            fill.style.width = '0%';
-            fill.offsetHeight; 
-            fill.style.transition = 'width 1.5s cubic-bezier(0.22, 1, 0.36, 1)';
-            
-            requestAnimationFrame(() => { fill.style.width = `${percent}%`; });
-            document.getElementById('progress-percent').innerText = `${percent}%`;
-            
-            if (titleOverride) {
-                document.getElementById('progress-text').innerText = `${titleOverride} : ${owned} / ${total} cartes`;
-            }
-        }
-
-        function renderCollection() {
-            const grid = document.getElementById('collection-grid');
-            grid.innerHTML = '';
-            
-            const search = document.getElementById('search-name').value.toLowerCase();
-            const type = document.getElementById('filter-type').value;
-            const rarity = document.getElementById('filter-rarity').value;
-            const status = document.getElementById('filter-status').value;
-
-            const filtered = displayedCardsData.filter(item => {
-                const info = fullJsonData.find(c => c.support_id === item.card_id);
-                if (!info) return false;
-                
-                const matchName = info.char_name.toLowerCase().includes(search);
-                const matchType = type === 'all' || info.type === type;
-                const matchRarity = rarity === 'all' || item.card_id.toString()[0] === rarity;
-                let matchStatus = true;
-                if (status === 'mlb') matchStatus = (item.mlb === 4);
-                if (status === 'not-mlb') matchStatus = (item.mlb < 4);
-                
-                return matchName && matchType && matchRarity && matchStatus;
-            });
-
-            filtered.sort((a, b) => b.card_id - a.card_id);
-
-            filtered.forEach(item => {
-                const info = fullJsonData.find(c => c.support_id === item.card_id);
-                let stars = '';
-                for (let i = 1; i <= 4; i++) {
-                    stars += `<span class="star ${i <= item.mlb ? 'star-gold' : 'star-gray'}">★</span>`;
-                }
-
-                const cardContainer = document.createElement('div');
-                cardContainer.className = 'card-link';
-                cardContainer.innerHTML = `
-                    <div class="card">
-                        <div class="card-image-container">
-                            <img src="${RARITY_ICONS[item.card_id.toString()[0]]}" class="rarity-overlay">
-                            <img src="${TYPE_ICONS[info.type]}" class="type-overlay">
-                            <img src="https://gametora.com/images/umamusume/supports/tex_support_card_${item.card_id}.png" class="card-art" loading="lazy">
-                        </div>
-                        <div class="card-name">${info.char_name}</div>
-                        <div class="stars-row">${stars}</div>
-                    </div>`;
-                grid.appendChild(cardContainer);
-            });
-
-            if (window.VanillaTilt) {
-                VanillaTilt.init(document.querySelectorAll(".card-link"), {
-                    max: 15, speed: 400, glare: true, "max-glare": 0.2
-                });
-            }
+        async function syncUserDatabase(twitchId, displayName, uuid) {
+            await supabaseClient.from('users').upsert({ uuid, twitch_id: twitchId, display_name: displayName }, { onConflict: 'twitch_id' });
         }
 
         async function fetchLeaderboards() {
@@ -229,14 +157,14 @@
             const topCol = [...data].sort((a, b) => b.total_cards - a.total_cards);
             const topMlb = [...data].sort((a, b) => b.total_mlb - a.total_mlb);
 
-            const formatLine = (u, key, unit) => `
-                <div class="lb-clickable" onclick="window.viewUserCollection('${u.display_name.replace(/'/g, "\\'")}')">
+            const formatLineMini = (u, key, unit) => `
+                <div style="cursor:pointer; margin-bottom:5px;" onclick="viewUserCollection('${u.display_name.replace(/'/g, "\\'")}')">
                     <b>${u.display_name}</b> : ${u[key]} ${unit}
                 </div>`;
 
-            document.getElementById('rank-collection-mini').innerHTML = topCol.slice(0, 3).map(u => formatLine(u, 'total_cards', 'cartes')).join('');
-            document.getElementById('rank-mlb-mini').innerHTML = topMlb.slice(0, 3).map(u => formatLine(u, 'total_mlb', 'MLB')).join('');
-            
+            document.getElementById('rank-collection-mini').innerHTML = topCol.slice(0, 3).map(u => formatLineMini(u, 'total_cards', 'cartes')).join('');
+            document.getElementById('rank-mlb-mini').innerHTML = topMlb.slice(0, 3).map(u => formatLineMini(u, 'total_mlb', 'MLB')).join('');
+
             renderFullLeaderboard(topCol, topMlb);
         }
 
@@ -247,7 +175,7 @@
                     <h3 style="color:var(--twitch-purple)">${title}</h3>
                     <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
                         ${list.map((u, i) => `
-                            <tr class="lb-row-clickable" onclick="window.viewUserCollection('${u.display_name.replace(/'/g, "\\'")}')">
+                            <tr style="border-bottom:1px solid var(--border-color); cursor:pointer;" onclick="viewUserCollection('${u.display_name.replace(/'/g, "\\'")}')">
                                 <td style="padding:8px 0;">#${i+1}</td>
                                 <td style="padding:8px 0; font-weight:bold;">${u.display_name}</td>
                                 <td style="padding:8px 0; text-align:right;">${u[key]} ${unit}</td>
@@ -255,39 +183,84 @@
                         `).join('')}
                     </table>
                 </div>`;
-            
             container.innerHTML = createTable('Top Collections', colData, 'total_cards', 'cartes') + createTable('Top MLB', mlbData, 'total_mlb', 'MLB');
         }
 
         window.viewUserCollection = async function(displayName) {
-            if (displayName === myDisplayName) {
-                window.showMyCollection();
-                return;
-            }
-
             const { data: userData } = await supabaseClient.from('users').select('twitch_id').eq('display_name', displayName).single();
             if (!userData) return;
 
             const { data: cardData } = await supabaseClient.from('collections').select('*').eq('user_id', String(userData.twitch_id));
-            displayedCardsData = cardData || [];
-
+            userCardsData = cardData || [];
+            
+            document.getElementById('progress-text').innerText = `Collection de ${displayName}`;
             document.getElementById('main-collection-view').classList.remove('hidden');
             document.getElementById('full-leaderboard').classList.add('hidden');
             document.getElementById('top3-widget').classList.add('hidden');
             document.getElementById('btn-show-leaderboard').classList.remove('hidden');
             document.getElementById('btn-back-home').classList.remove('hidden');
 
-            updateProgressBar(`Collection de ${displayName}`);
+            updateProgressBar();
             renderCollection();
             window.scrollTo({ top: 0, behavior: 'smooth' });
-        };
+        }
 
-        function resetViewStates() {
-            document.getElementById('main-collection-view').classList.remove('hidden');
-            document.getElementById('full-leaderboard').classList.add('hidden');
-            document.getElementById('top3-widget').classList.remove('hidden');
-            document.getElementById('btn-show-leaderboard').classList.remove('hidden');
-            document.getElementById('btn-back-home').classList.add('hidden');
+        function updateProgressBar() {
+            const total = fullJsonData.length;
+            const owned = userCardsData.length;
+            const percent = total > 0 ? Math.round((owned / total) * 100) : 0;
+            
+            const fill = document.getElementById('progress-fill');
+            fill.style.width = `${percent}%`;
+            document.getElementById('progress-percent').innerText = `${percent}%`;
+
+            if (!document.getElementById('progress-text').innerText.startsWith("Collection de")) {
+                document.getElementById('progress-text').innerText = `Collection : ${owned} / ${total} cartes`;
+            }
+        }
+
+        function renderCollection() {
+            const grid = document.getElementById('collection-grid');
+            grid.innerHTML = '';
+
+            const search = document.getElementById('search-name').value.toLowerCase();
+            const type = document.getElementById('filter-type').value;
+            const rarity = document.getElementById('filter-rarity').value;
+            const status = document.getElementById('filter-status').value;
+
+            const filtered = userCardsData.filter(item => {
+                const info = fullJsonData.find(c => c.support_id === item.card_id);
+                if (!info) return false;
+                const matchName = info.char_name.toLowerCase().includes(search);
+                const matchType = type === 'all' || info.type === type;
+                const matchRarity = rarity === 'all' || item.card_id.toString()[0] === rarity;
+                let matchStatus = true;
+                if (status === 'mlb') matchStatus = (item.mlb === 4);
+                if (status === 'not-mlb') matchStatus = (item.mlb < 4);
+                return matchName && matchType && matchRarity && matchStatus;
+            });
+
+            filtered.sort((a, b) => b.card_id - a.card_id);
+            filtered.forEach(item => {
+                const info = fullJsonData.find(c => c.support_id === item.card_id);
+                let stars = '';
+                for (let i = 1; i <= 4; i++) stars += `<span class="star ${i <= item.mlb ? 'star-gold' : 'star-gray'}">★</span>`;
+                
+                const card = document.createElement('div');
+                card.className = 'card-link';
+                card.innerHTML = `
+                    <div class="card">
+                        <div class="card-image-container">
+                            <img src="${RARITY_ICONS[item.card_id.toString()[0]]}" class="rarity-overlay">
+                            <img src="${TYPE_ICONS[info.type]}" class="type-overlay">
+                            <img src="https://gametora.com/images/umamusume/supports/tex_support_card_${item.card_id}.png" class="card-art" loading="lazy">
+                        </div>
+                        <div class="card-name">${info.char_name}</div>
+                        <div class="stars-row">${stars}</div>
+                    </div>`;
+                grid.appendChild(card);
+            });
+            VanillaTilt.init(document.querySelectorAll(".card-link"));
         }
 
         document.getElementById('btn-show-leaderboard').onclick = () => {
@@ -296,12 +269,9 @@
             document.getElementById('full-leaderboard').classList.remove('hidden');
             document.getElementById('btn-show-leaderboard').classList.add('hidden');
             document.getElementById('btn-back-home').classList.remove('hidden');
-            document.getElementById('progress-text').innerText = "Classements";
-            document.getElementById('progress-percent').innerText = "";
-            document.getElementById('progress-fill').style.width = "0%";
         };
 
-        document.getElementById('btn-back-home').onclick = () => window.showMyCollection();
+        document.getElementById('btn-back-home').onclick = () => { window.location.reload(); };
         document.getElementById('search-name').oninput = renderCollection;
         document.getElementById('filter-type').onchange = renderCollection;
         document.getElementById('filter-rarity').onchange = renderCollection;
