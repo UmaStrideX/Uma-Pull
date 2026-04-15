@@ -6,6 +6,7 @@
     <title>UmaPull</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.7.0/vanilla-tilt.min.js"></script>
 </head>
 <body>
 
@@ -18,64 +19,85 @@
         <div id="user-section" class="hidden">
             <div class="header">
                 <h1>UmaPull</h1>
-                <button id="btn-logout" class="btn">Déconnexion</button>
+                <div style="display: flex; gap: 10px;">
+                    <button id="btn-show-leaderboard" class="btn">Classements</button>
+                    <button id="btn-back-home" class="btn hidden">Ma Collection</button>
+                    <button id="btn-logout" class="btn">Déconnexion</button>
+                </div>
+            </div>
+
+            <div id="top3-widget" class="progress-section">
+                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <h3 style="margin-top:0; color:var(--twitch-purple)">Top Cartes</h3>
+                        <div id="rank-collection-mini" style="font-size: 0.9rem;"></div>
+                    </div>
+                    <div style="flex: 1; min-width: 200px;">
+                        <h3 style="margin-top:0; color:var(--gold)">Top MLB</h3>
+                        <div id="rank-mlb-mini" style="font-size: 0.9rem;"></div>
+                    </div>
+                </div>
             </div>
 
             <div class="progress-section">
                 <div class="progress-header">
-                    <span class="progress-label" id="progress-text">Chargement de la collection...</span>
-                    <span class="progress-percentage" id="progress-percent">0%</span>
+                    <span id="progress-text" class="progress-label">Chargement...</span>
+                    <span id="progress-percent" class="progress-percentage">0%</span>
                 </div>
                 <div class="progress-bar-bg">
-                    <div id="progress-fill" class="progress-bar-fill"></div>
+                    <div id="progress-fill" class="progress-bar-fill" style="width: 0%;"></div>
                 </div>
             </div>
 
-            <div class="filter-bar">
-                <div class="search-group">
-                    <svg style="position:absolute; left:12px; top:50%; transform:translateY(-50%); width:18px; height:18px; color:#555;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                    <input type="text" id="search-name" class="search-input" placeholder="Rechercher une carte...">
+            <div id="main-collection-view">
+                <div class="filter-bar">
+                    <div class="search-group">
+                        <input type="text" id="search-name" class="search-input" placeholder="Rechercher une Uma...">
+                    </div>
+                    <select id="filter-type" class="filter-select">
+                        <option value="all">Tous les types</option>
+                        <option value="speed">Speed</option>
+                        <option value="stamina">Stamina</option>
+                        <option value="power">Power</option>
+                        <option value="guts">Guts</option>
+                        <option value="intelligence">Wisdom</option>
+                        <option value="friend">Friend</option>
+                        <option value="group">Group</option>
+                    </select>
+                    <select id="filter-rarity" class="filter-select">
+                        <option value="all">Toutes rarités</option>
+                        <option value="3">SSR</option>
+                        <option value="2">SR</option>
+                        <option value="1">R</option>
+                    </select>
+                    <select id="filter-status" class="filter-select">
+                        <option value="all">Tout afficher</option>
+                        <option value="mlb">MLB uniquement</option>
+                        <option value="not-mlb">Non MLB</option>
+                    </select>
                 </div>
-                
-                <select id="filter-type" class="filter-select">
-                    <option value="all">Tous les types</option>
-                    <option value="speed">Speed</option>
-                    <option value="stamina">Stamina</option>
-                    <option value="power">Power</option>
-                    <option value="guts">Guts</option>
-                    <option value="intelligence">Wit</option>
-                    <option value="friend">Friend</option>
-                    <option value="group">Group</option>
-                </select>
 
-                <select id="filter-rarity" class="filter-select">
-                    <option value="all">Toutes les raretés</option>
-                    <option value="3">SSR</option>
-                    <option value="2">SR</option>
-                    <option value="1">R</option>
-                </select>
-
-                <select id="filter-status" class="filter-select">
-                    <option value="all">Tous les status</option>
-                    <option value="not-mlb">Incomplètes (< 4★)</option>
-                    <option value="mlb">Max Limit Break (4★)</option>
-                </select>
+                <div id="collection-grid" class="grid"></div>
             </div>
 
-            <div id="collection-grid" class="grid"></div>
+            <div id="full-leaderboard" class="hidden">
+                <div id="leaderboard-tables" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;"></div>
+            </div>
         </div>
     </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.7.2/vanilla-tilt.min.js"></script>
 
     <script>
         const SB_URL = 'https://bncrjtixiczhjijivgip.supabase.co';
         const SB_KEY = 'sb_publishable_stQ59C3Whi35kXPGYpfVpg_MxkzQapT';
         const JSON_URL = 'https://gametora.com/data/umamusume/support-cards.fcf72d70.json';
-        
+
         const supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
-        let userCardsData = [];
+        
+        let myCardsData = [];
+        let displayedCardsData = [];
         let fullJsonData = [];
+        let myTwitchId = null;
+        let myDisplayName = null;
 
         const TYPE_ICONS = {
             'speed': 'https://gametora.com/images/umamusume/icons/utx_ico_obtain_00.png',
@@ -94,131 +116,209 @@
         };
 
         async function loadUI() {
-            const { data: { session }, error } = await supabaseClient.auth.getSession();
+            const jsonRes = await fetch(JSON_URL);
+            fullJsonData = await jsonRes.json();
+
+            const { data: { session } } = await supabaseClient.auth.getSession();
             
             if (session) {
-                if (window.location.hash) {
-                    window.history.replaceState(null, null, window.location.pathname);
-                }
+                myTwitchId = String(session.user.user_metadata.provider_id);
+                myDisplayName = session.user.user_metadata.display_name || session.user.user_metadata.full_name;
+                
+                await syncUserDatabase(myTwitchId, myDisplayName, session.user.id);
 
                 document.getElementById('auth-section').classList.add('hidden');
                 document.getElementById('user-section').classList.remove('hidden');
-                const twitchId = session.user.user_metadata.provider_id;
 
-                const [sbRes, jsonRes] = await Promise.all([
-                    supabaseClient.from('collections').select('*').eq('user_id', twitchId),
-                    fetch(JSON_URL).then(r => r.json())
-                ]);
-
-                userCardsData = sbRes.data || [];
-                fullJsonData = jsonRes;
+                const { data } = await supabaseClient.from('collections').select('*').eq('user_id', myTwitchId);
+                myCardsData = data || [];
                 
-                if (typeof updateProgressBar === "function") updateProgressBar();
-                renderCollection();
+                showMyCollection();
+                fetchLeaderboards();
             } else {
                 document.getElementById('auth-section').classList.remove('hidden');
-                document.getElementById('user-section').classList.add('hidden');
             }
         }
 
-        function updateProgressBar() {
-            const totalPossible = fullJsonData.length;
-            const owned = userCardsData.length;
-            const percentage = totalPossible > 0 ? Math.round((owned / totalPossible) * 100) : 0;
+        function showMyCollection() {
+            displayedCardsData = [...myCardsData];
+            resetViewStates();
+            updateProgressBar("Ma Collection");
+            renderCollection();
+        }
 
-            document.getElementById('progress-text').innerText = `Collection : ${owned} / ${totalPossible} cartes`;
-            document.getElementById('progress-percent').innerText = `${percentage}%`;
-            document.getElementById('progress-fill').style.width = `${percentage}%`;
+        function updateProgressBar(titleOverride = null) {
+            const total = fullJsonData.length;
+            const owned = displayedCardsData.length;
+            const percent = total > 0 ? Math.round((owned / total) * 100) : 0;
+
+            const fill = document.getElementById('progress-fill');
+            const percentText = document.getElementById('progress-percent');
+            const labelText = document.getElementById('progress-text');
+
+            // On réinitialise à 0 pour forcer le redéclenchement de l'animation si on change de vue
+            fill.style.transition = 'none';
+            fill.style.width = '0%';
+            
+            // On force un recalcul du layout par le navigateur
+            fill.offsetHeight; 
+
+            // On réactive la transition et on applique le pourcentage
+            fill.style.transition = 'width 1.5s cubic-bezier(0.22, 1, 0.36, 1)';
+            
+            // Le requestAnimationFrame permet d'attendre le prochain cycle de rendu
+            requestAnimationFrame(() => {
+                fill.style.width = `${percent}%`;
+            });
+
+            percentText.innerText = `${percent}%`;
+
+            if (titleOverride) {
+                labelText.innerText = `${titleOverride} : ${owned} / ${total} cartes`;
+            }
         }
 
         function renderCollection() {
             const grid = document.getElementById('collection-grid');
-            const searchVal = document.getElementById('search-name').value.toLowerCase();
-            const typeVal = document.getElementById('filter-type').value;
-            const rarityVal = document.getElementById('filter-rarity').value;
-            const statusVal = document.getElementById('filter-status').value;
+            grid.innerHTML = '';
 
-            const filtered = userCardsData.filter(item => {
+            const search = document.getElementById('search-name').value.toLowerCase();
+            const type = document.getElementById('filter-type').value;
+            const rarity = document.getElementById('filter-rarity').value;
+            const status = document.getElementById('filter-status').value;
+
+            const filtered = displayedCardsData.filter(item => {
                 const info = fullJsonData.find(c => c.support_id === item.card_id);
                 if (!info) return false;
-
-                const firstDigit = item.card_id.toString()[0];
-                const matchesName = info.char_name.toLowerCase().includes(searchVal);
-                const matchesType = typeVal === 'all' || info.type === typeVal;
-                const matchesRarity = rarityVal === 'all' || firstDigit === rarityVal;
-                
-                let matchesStatus = true;
-                if (statusVal === 'mlb') matchesStatus = (item.mlb === 4);
-                if (statusVal === 'not-mlb') matchesStatus = (item.mlb < 4);
-
-                return matchesName && matchesType && matchesRarity && matchesStatus;
+                const matchName = info.char_name.toLowerCase().includes(search);
+                const matchType = type === 'all' || info.type === type;
+                const matchRarity = rarity === 'all' || item.card_id.toString()[0] === rarity;
+                let matchStatus = true;
+                if (status === 'mlb') matchStatus = (item.mlb === 4);
+                if (status === 'not-mlb') matchStatus = (item.mlb < 4);
+                return matchName && matchType && matchRarity && matchStatus;
             });
 
             filtered.sort((a, b) => b.card_id - a.card_id);
-
-            const fragment = document.createDocumentFragment();
-            grid.innerHTML = '';
-
-            if (filtered.length > 0) {
-                filtered.forEach(item => {
-                    const info = fullJsonData.find(c => c.support_id === item.card_id);
-                    const firstDigit = item.card_id.toString()[0];
-                    
-                    let starsHtml = '';
-                    for (let i = 1; i <= 4; i++) {
-                        starsHtml += `<span class="star ${i <= item.mlb ? 'star-gold' : 'star-gray'}">★</span>`;
-                    }
-
-                    const cardEl = document.createElement('div');
-                    cardEl.innerHTML = `
-                        <div class="card-link" 
-                        style="cursor: default;" 
-                        data-tilt 
-                        data-tilt-max="20" 
-                        data-tilt-speed="400" 
-                        data-tilt-perspective="2000" 
-                        data-tilt-glare="false" 
-                        data-tilt-scale="1.02">
-                            <div class="card">
-                                <div class="card-image-container">
-                                    <img src="${RARITY_ICONS[firstDigit]}" class="rarity-overlay">
-                                    <img src="${TYPE_ICONS[info.type]}" class="type-overlay">
-                                    <img src="https://gametora.com/images/umamusume/supports/tex_support_card_${item.card_id}.png" class="card-art" alt="${info.char_name}" loading="lazy">
-                                </div>
-                                <div class="card-name">${info.char_name}</div>
-                                <div class="stars-row">${starsHtml}</div>
-                            </div>
-                        </div>`;
-                    fragment.appendChild(cardEl.firstElementChild);
-                });
-
-                grid.appendChild(fragment);
-                VanillaTilt.init(document.querySelectorAll(".card-link"));
-            } else {
-                grid.innerHTML = '<div id="empty-msg">Aucune carte trouvée.</div>';
-            }
+            filtered.forEach(item => {
+                const info = fullJsonData.find(c => c.support_id === item.card_id);
+                let stars = '';
+                for (let i = 1; i <= 4; i++) stars += `<span class="star ${i <= item.mlb ? 'star-gold' : 'star-gray'}">★</span>`;
+                
+                const card = document.createElement('div');
+                card.className = 'card-link';
+                card.setAttribute('data-tilt', '');
+                card.innerHTML = `
+                    <div class="card">
+                        <div class="card-image-container">
+                            <img src="${RARITY_ICONS[item.card_id.toString()[0]]}" class="rarity-overlay">
+                            <img src="${TYPE_ICONS[info.type]}" class="type-overlay">
+                            <img src="https://gametora.com/images/umamusume/supports/tex_support_card_${item.card_id}.png" class="card-art" loading="lazy">
+                        </div>
+                        <div class="card-name">${info.char_name}</div>
+                        <div class="stars-row">${stars}</div>
+                    </div>`;
+                grid.appendChild(card);
+            });
+            VanillaTilt.init(document.querySelectorAll(".card-link"));
         }
 
-        let searchTimeout;
-        document.getElementById('search-name').oninput = () => {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(renderCollection, 100);
+        async function syncUserDatabase(twitchId, displayName, uuid) {
+            await supabaseClient.from('users').upsert({ 
+                uuid: uuid,
+                twitch_id: twitchId, 
+                display_name: displayName
+            }, { onConflict: 'twitch_id' });
+        }
+
+        async function fetchLeaderboards() {
+            const { data } = await supabaseClient.from('leaderboards').select('*');
+            if (!data) return;
+
+            const topCol = [...data].sort((a, b) => b.total_cards - a.total_cards);
+            const topMlb = [...data].sort((a, b) => b.total_mlb - a.total_mlb);
+
+            const formatLine = (u, key, unit) => {
+                const name = u.display_name.replace(/'/g, "\\'");
+                return `<div style="cursor:pointer; margin-bottom:5px;" onclick="viewUserCollection('${name}')">
+                    <b>${u.display_name}</b> : ${u[key]} ${unit}
+                </div>`;
+            };
+
+            document.getElementById('rank-collection-mini').innerHTML = topCol.slice(0, 3).map(u => formatLine(u, 'total_cards', 'cartes')).join('');
+            document.getElementById('rank-mlb-mini').innerHTML = topMlb.slice(0, 3).map(u => formatLine(u, 'total_mlb', 'MLB')).join('');
+
+            renderFullLeaderboard(topCol, topMlb);
+        }
+
+        function renderFullLeaderboard(colData, mlbData) {
+            const container = document.getElementById('leaderboard-tables');
+            const createTable = (title, list, key, unit) => `
+                <div class="progress-section">
+                    <h3 style="color:var(--twitch-purple)">${title}</h3>
+                    <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+                        ${list.map((u, i) => `
+                            <tr style="border-bottom:1px solid var(--border-color); cursor:pointer;" onclick="viewUserCollection('${u.display_name.replace(/'/g, "\\'")}')">
+                                <td style="padding:8px 0;">#${i+1}</td>
+                                <td style="padding:8px 0; font-weight:bold;">${u.display_name}</td>
+                                <td style="padding:8px 0; text-align:right;">${u[key]} ${unit}</td>
+                            </tr>
+                        `).join('')}
+                    </table>
+                </div>`;
+            container.innerHTML = createTable('Top Collections', colData, 'total_cards', 'cartes') + createTable('Top MLB', mlbData, 'total_mlb', 'MLB');
+        }
+
+        async function viewUserCollection(displayName) {
+            if (displayName === myDisplayName) {
+                showMyCollection();
+                return;
+            }
+
+            const { data: userData } = await supabaseClient.from('users').select('twitch_id').eq('display_name', displayName).single();
+            if (!userData) return;
+
+            const { data: cardData } = await supabaseClient.from('collections').select('*').eq('user_id', String(userData.twitch_id));
+            displayedCardsData = cardData || [];
+            
+            document.getElementById('main-collection-view').classList.remove('hidden');
+            document.getElementById('full-leaderboard').classList.add('hidden');
+            document.getElementById('top3-widget').classList.add('hidden');
+            document.getElementById('btn-show-leaderboard').classList.remove('hidden');
+            document.getElementById('btn-back-home').classList.remove('hidden');
+
+            updateProgressBar(`Collection de ${displayName}`);
+            renderCollection();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function resetViewStates() {
+            document.getElementById('main-collection-view').classList.remove('hidden');
+            document.getElementById('full-leaderboard').classList.add('hidden');
+            document.getElementById('top3-widget').classList.remove('hidden');
+            document.getElementById('btn-show-leaderboard').classList.remove('hidden');
+            document.getElementById('btn-back-home').classList.add('hidden');
+        }
+
+        document.getElementById('btn-show-leaderboard').onclick = () => {
+            document.getElementById('main-collection-view').classList.add('hidden');
+            document.getElementById('top3-widget').classList.add('hidden');
+            document.getElementById('full-leaderboard').classList.remove('hidden');
+            document.getElementById('btn-show-leaderboard').classList.add('hidden');
+            document.getElementById('btn-back-home').classList.remove('hidden');
+            document.getElementById('progress-text').innerText = "Classements";
+            document.getElementById('progress-percent').innerText = "";
+            document.getElementById('progress-fill').style.width = "0%";
         };
-        
+
+        document.getElementById('btn-back-home').onclick = showMyCollection;
+        document.getElementById('search-name').oninput = renderCollection;
         document.getElementById('filter-type').onchange = renderCollection;
         document.getElementById('filter-rarity').onchange = renderCollection;
         document.getElementById('filter-status').onchange = renderCollection;
 
         document.getElementById('btn-login').onclick = () => {
-            supabaseClient.auth.signInWithOAuth({ 
-                provider: 'twitch', 
-                options: { 
-                    redirectTo: 'https://umastridex.github.io/Uma-Pull/',
-                    queryParams: {
-                        force_verify: 'true'
-                    }
-                } 
-            });
+            supabaseClient.auth.signInWithOAuth({ provider: 'twitch', options: { redirectTo: window.location.origin + window.location.pathname } });
         };
 
         document.getElementById('btn-logout').onclick = async () => {
