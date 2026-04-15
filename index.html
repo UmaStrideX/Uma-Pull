@@ -45,7 +45,7 @@
                     <span id="progress-percent" class="progress-percentage">0%</span>
                 </div>
                 <div class="progress-bar-bg">
-                    <div id="progress-fill" class="progress-bar-fill" style="width: 0%;"></div>
+                    <div id="progress-fill" class="progress-bar-fill"></div>
                 </div>
             </div>
 
@@ -76,7 +76,6 @@
                         <option value="not-mlb">Non MLB</option>
                     </select>
                 </div>
-
                 <div id="collection-grid" class="grid"></div>
             </div>
 
@@ -116,27 +115,29 @@
         };
 
         async function loadUI() {
-            const jsonRes = await fetch(JSON_URL);
-            fullJsonData = await jsonRes.json();
-
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            
-            if (session) {
-                myTwitchId = String(session.user.user_metadata.provider_id);
-                myDisplayName = session.user.user_metadata.display_name || session.user.user_metadata.full_name;
+            try {
+                const jsonRes = await fetch(JSON_URL);
+                fullJsonData = await jsonRes.json();
+                const { data: { session } } = await supabaseClient.auth.getSession();
                 
-                await syncUserDatabase(myTwitchId, myDisplayName, session.user.id);
-
-                document.getElementById('auth-section').classList.add('hidden');
-                document.getElementById('user-section').classList.remove('hidden');
-
-                const { data } = await supabaseClient.from('collections').select('*').eq('user_id', myTwitchId);
-                myCardsData = data || [];
-                
-                showMyCollection();
-                fetchLeaderboards();
-            } else {
-                document.getElementById('auth-section').classList.remove('hidden');
+                if (session) {
+                    myTwitchId = String(session.user.user_metadata.provider_id);
+                    myDisplayName = session.user.user_metadata.display_name || session.user.user_metadata.full_name;
+                    
+                    await syncUserDatabase(myTwitchId, myDisplayName, session.user.id);
+                    
+                    document.getElementById('auth-section').classList.add('hidden');
+                    document.getElementById('user-section').classList.remove('hidden');
+                    
+                    const { data } = await supabaseClient.from('collections').select('*').eq('user_id', myTwitchId);
+                    myCardsData = data || [];
+                    showMyCollection();
+                    fetchLeaderboards();
+                } else {
+                    document.getElementById('auth-section').classList.remove('hidden');
+                }
+            } catch (e) {
+                console.error("Erreur chargement UI:", e);
             }
         }
 
@@ -151,33 +152,26 @@
             const total = fullJsonData.length;
             const owned = displayedCardsData.length;
             const percent = total > 0 ? Math.round((owned / total) * 100) : 0;
-
             const fill = document.getElementById('progress-fill');
-            const percentText = document.getElementById('progress-percent');
-            const labelText = document.getElementById('progress-text');
-
+            
+            fill.classList.remove('finished');
             fill.style.transition = 'none';
             fill.style.width = '0%';
-            
             fill.offsetHeight; 
-
             fill.style.transition = 'width 1.5s cubic-bezier(0.22, 1, 0.36, 1)';
             
-            requestAnimationFrame(() => {
-                fill.style.width = `${percent}%`;
-            });
-
-            percentText.innerText = `${percent}%`;
-
+            requestAnimationFrame(() => { fill.style.width = `${percent}%`; });
+            document.getElementById('progress-percent').innerText = `${percent}%`;
+            
             if (titleOverride) {
-                labelText.innerText = `${titleOverride} : ${owned} / ${total} cartes`;
+                document.getElementById('progress-text').innerText = `${titleOverride} : ${owned} / ${total} cartes`;
             }
         }
 
         function renderCollection() {
             const grid = document.getElementById('collection-grid');
             grid.innerHTML = '';
-
+            
             const search = document.getElementById('search-name').value.toLowerCase();
             const type = document.getElementById('filter-type').value;
             const rarity = document.getElementById('filter-rarity').value;
@@ -186,25 +180,29 @@
             const filtered = displayedCardsData.filter(item => {
                 const info = fullJsonData.find(c => c.support_id === item.card_id);
                 if (!info) return false;
+                
                 const matchName = info.char_name.toLowerCase().includes(search);
                 const matchType = type === 'all' || info.type === type;
                 const matchRarity = rarity === 'all' || item.card_id.toString()[0] === rarity;
                 let matchStatus = true;
                 if (status === 'mlb') matchStatus = (item.mlb === 4);
                 if (status === 'not-mlb') matchStatus = (item.mlb < 4);
+                
                 return matchName && matchType && matchRarity && matchStatus;
             });
 
             filtered.sort((a, b) => b.card_id - a.card_id);
+
             filtered.forEach(item => {
                 const info = fullJsonData.find(c => c.support_id === item.card_id);
                 let stars = '';
-                for (let i = 1; i <= 4; i++) stars += `<span class="star ${i <= item.mlb ? 'star-gold' : 'star-gray'}">★</span>`;
-                
-                const card = document.createElement('div');
-                card.className = 'card-link';
-                card.setAttribute('data-tilt', '');
-                card.innerHTML = `
+                for (let i = 1; i <= 4; i++) {
+                    stars += `<span class="star ${i <= item.mlb ? 'star-gold' : 'star-gray'}">★</span>`;
+                }
+
+                const cardContainer = document.createElement('div');
+                cardContainer.className = 'card-link';
+                cardContainer.innerHTML = `
                     <div class="card">
                         <div class="card-image-container">
                             <img src="${RARITY_ICONS[item.card_id.toString()[0]]}" class="rarity-overlay">
@@ -214,17 +212,21 @@
                         <div class="card-name">${info.char_name}</div>
                         <div class="stars-row">${stars}</div>
                     </div>`;
-                grid.appendChild(card);
+                grid.appendChild(cardContainer);
             });
-            VanillaTilt.init(document.querySelectorAll(".card-link"));
+
+            if (window.VanillaTilt) {
+                VanillaTilt.init(document.querySelectorAll(".card-link"), {
+                    max: 15,
+                    speed: 400,
+                    glare: true,
+                    "max-glare": 0.2
+                });
+            }
         }
 
         async function syncUserDatabase(twitchId, displayName, uuid) {
-            await supabaseClient.from('users').upsert({ 
-                uuid: uuid,
-                twitch_id: twitchId, 
-                display_name: displayName
-            }, { onConflict: 'twitch_id' });
+            await supabaseClient.from('users').upsert({ uuid, twitch_id: twitchId, display_name: displayName }, { onConflict: 'twitch_id' });
         }
 
         async function fetchLeaderboards() {
@@ -234,16 +236,14 @@
             const topCol = [...data].sort((a, b) => b.total_cards - a.total_cards);
             const topMlb = [...data].sort((a, b) => b.total_mlb - a.total_mlb);
 
-            const formatLine = (u, key, unit) => {
-                const name = u.display_name.replace(/'/g, "\\'");
-                return `<div style="cursor:pointer; margin-bottom:5px;" onclick="viewUserCollection('${name}')">
+            const formatLine = (u, key, unit) => `
+                <div class="lb-clickable" onclick="viewUserCollection('${u.display_name.replace(/'/g, "\\'")}')">
                     <b>${u.display_name}</b> : ${u[key]} ${unit}
                 </div>`;
-            };
 
             document.getElementById('rank-collection-mini').innerHTML = topCol.slice(0, 3).map(u => formatLine(u, 'total_cards', 'cartes')).join('');
             document.getElementById('rank-mlb-mini').innerHTML = topMlb.slice(0, 3).map(u => formatLine(u, 'total_mlb', 'MLB')).join('');
-
+            
             renderFullLeaderboard(topCol, topMlb);
         }
 
@@ -254,7 +254,7 @@
                     <h3 style="color:var(--twitch-purple)">${title}</h3>
                     <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
                         ${list.map((u, i) => `
-                            <tr style="border-bottom:1px solid var(--border-color); cursor:pointer;" onclick="viewUserCollection('${u.display_name.replace(/'/g, "\\'")}')">
+                            <tr class="lb-row-clickable" onclick="viewUserCollection('${u.display_name.replace(/'/g, "\\'")}')">
                                 <td style="padding:8px 0;">#${i+1}</td>
                                 <td style="padding:8px 0; font-weight:bold;">${u.display_name}</td>
                                 <td style="padding:8px 0; text-align:right;">${u[key]} ${unit}</td>
@@ -262,6 +262,7 @@
                         `).join('')}
                     </table>
                 </div>`;
+            
             container.innerHTML = createTable('Top Collections', colData, 'total_cards', 'cartes') + createTable('Top MLB', mlbData, 'total_mlb', 'MLB');
         }
 
@@ -276,7 +277,7 @@
 
             const { data: cardData } = await supabaseClient.from('collections').select('*').eq('user_id', String(userData.twitch_id));
             displayedCardsData = cardData || [];
-            
+
             document.getElementById('main-collection-view').classList.remove('hidden');
             document.getElementById('full-leaderboard').classList.add('hidden');
             document.getElementById('top3-widget').classList.add('hidden');
@@ -319,7 +320,7 @@
 
         document.getElementById('btn-logout').onclick = async () => {
             await supabaseClient.auth.signOut();
-            window.location.href = 'https://umastridex.github.io/Uma-Pull/';
+            window.location.reload();
         };
 
         loadUI();
