@@ -156,17 +156,13 @@
             const percentText = document.getElementById('progress-percent');
             const labelText = document.getElementById('progress-text');
 
-            // On réinitialise à 0 pour forcer le redéclenchement de l'animation si on change de vue
             fill.style.transition = 'none';
             fill.style.width = '0%';
             
-            // On force un recalcul du layout par le navigateur
             fill.offsetHeight; 
 
-            // On réactive la transition et on applique le pourcentage
             fill.style.transition = 'width 1.5s cubic-bezier(0.22, 1, 0.36, 1)';
             
-            // Le requestAnimationFrame permet d'attendre le prochain cycle de rendu
             requestAnimationFrame(() => {
                 fill.style.width = `${percent}%`;
             });

@@ -10,7 +10,6 @@
     --text-main: #f5f5f7;
     --text-muted: #adadb8;
     --border-color: rgba(145, 70, 255, 0.15);
-    --glass: blur(15px) saturate(180%);
     
     --holo-glow: rgba(145, 70, 255, 0.15);
     --grid-color: rgba(145, 70, 255, 0.04);
@@ -18,17 +17,12 @@
 }
 
 @keyframes titleShine {
-    from { background-position: 0% 50%; }
-    to { background-position: 100% 50%; }
-}
-
-@keyframes shimmer {
-    0% { background-position: -400px 0; }
-    100% { background-position: 400px 0; }
+    from { background-position-x: 0%; }
+    to { background-position-x: 100%; }
 }
 
 @keyframes scanline {
-    0% { transform: translateY(-15vh); }
+    0% { transform: translateY(-10vh); }
     100% { transform: translateY(95vh); }
 }
 
@@ -37,14 +31,31 @@
         background-size: 80px 140px;
         opacity: 0.6;
     }
-    50% {
+    100% {
         background-size: 84px 144px;
         opacity: 0.9;
     }
-    100% {
-        background-size: 80px 140px;
-        opacity: 0.6;
-    }
+}
+
+@keyframes progressSlide {
+    from { background-position: 0 0; }
+    to { background-position: 40px 0; }
+}
+
+@keyframes flowLight {
+    0% { left: 0%; }
+    100% { left: 100%; }
+}
+
+@keyframes pulseFin {
+    0% { box-shadow: 0 0 5px rgba(145, 70, 255, 0.5); filter: brightness(1); }
+    50% { box-shadow: 0 0 25px rgba(145, 70, 255, 1), 0 0 10px rgba(255, 255, 255, 0.8); filter: brightness(1.4); }
+    100% { box-shadow: 0 0 5px rgba(145, 70, 255, 0.5); filter: brightness(1); }
+}
+
+@keyframes cardPulse {
+    0% {transform: scale(1)}
+    100% {transform: scale(1.03)}
 }
 
 body { 
@@ -58,9 +69,9 @@ body {
     position: relative;
     overflow-x: hidden;
     background-image: 
-        radial-gradient(circle at 10% 15%, rgba(145, 70, 255, 0.12) 0%, transparent 40%),
-        radial-gradient(circle at 85% 85%, rgba(255, 215, 0, 0.04) 0%, transparent 35%),
-        radial-gradient(circle at 50% 50%, rgba(10, 10, 20, 1) 0%, var(--bg-dark) 100%);
+        radial-gradient(circle at 0% 0%, rgba(145, 70, 255, 0.12) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(202, 167, 255, 0.12) 0%, transparent 0%),
+        radial-gradient(circle at 100% 100%, rgba(145, 70, 255, 0.12) 0%, transparent 50%);
     background-attachment: fixed;
 }
 
@@ -73,18 +84,18 @@ body::before {
     height: 110%;
     z-index: -1;
     background-image: 
-        linear-gradient(30deg, var(--grid-color) 12%, transparent 12.5%, transparent 87%, var(--grid-color) 87.5%, var(--grid-color)),
-        linear-gradient(150deg, var(--grid-color) 12%, transparent 12.5%, transparent 87%, var(--grid-color) 87.5%, var(--grid-color)),
-        linear-gradient(30deg, var(--grid-color) 12%, transparent 12.5%, transparent 87%, var(--grid-color) 87.5%, var(--grid-color)),
-        linear-gradient(150deg, var(--grid-color) 12%, transparent 12.5%, transparent 87%, var(--grid-color) 87.5%, var(--grid-color)),
-        linear-gradient(60deg, rgba(145, 70, 255, 0.01) 25%, transparent 25.5%, transparent 75%, rgba(145, 70, 255, 0.01) 75.5%, rgba(145, 70, 255, 0.01)),
-        linear-gradient(60deg, rgba(145, 70, 255, 0.01) 25%, transparent 25.5%, transparent 75%, rgba(145, 70, 255, 0.01) 75.5%, rgba(145, 70, 255, 0.01));
+        linear-gradient(30deg, var(--grid-color) 90%, transparent 12.5%, transparent 87%, var(--grid-color) 87.5%, var(--grid-color)),
+        linear-gradient(150deg, var(--grid-color) 90%, transparent 12.5%, transparent 87%, var(--grid-color) 87.5%, var(--grid-color)),
+        linear-gradient(30deg, var(--grid-color) 90%, transparent 12.5%, transparent 87%, var(--grid-color) 87.5%, var(--grid-color)),
+        linear-gradient(150deg, var(--grid-color) 90%, transparent 12.5%, transparent 87%, var(--grid-color) 87.5%, var(--grid-color)),
+        linear-gradient(60deg, rgba(145, 70, 255, 0.01) 12.5%, transparent 25.5%, transparent 75%, rgba(145, 70, 255, 0.01) 75.5%, rgba(145, 70, 255, 0.01)),
+        linear-gradient(60deg, rgba(145, 70, 255, 0.01) 12.5%, transparent 25.5%, transparent 75%, rgba(145, 70, 255, 0.01) 75.5%, rgba(145, 70, 255, 0.01));
     background-size: 80px 140px;
     background-position: center;
     background-attachment: fixed;
     -webkit-mask-image: radial-gradient(circle at 50% 50%, black 20%, transparent 90%);
     mask-image: radial-gradient(circle at 50% 50%, black 20%, transparent 90%);
-    animation: gridPulse 5s ease-in-out infinite;
+    animation: gridPulse 5s ease-in-out infinite alternate;
 }
 
 body::after {
@@ -94,9 +105,9 @@ body::after {
     left: 0;
     width: 100%;
     height: 150px;
-    background: linear-gradient(to bottom, transparent 0%, rgba(102, 0, 255, 0.082) 50%, transparent 100%);
+    background: linear-gradient(to bottom, transparent 0%, rgba(102, 0, 255, 0.04) 50%, transparent 100%);
     z-index: -1;
-    animation: scanline 6s linear infinite;
+    animation: scanline 3s linear infinite alternate;
     pointer-events: none;
 }
 
@@ -119,7 +130,7 @@ h1 {
     background-size: 200% auto;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    animation: titleShine 10s ease-in-out infinite alternate;
+    animation: titleShine 5s ease-in-out infinite alternate;
     margin: 0;
 }
 
@@ -193,8 +204,7 @@ h1 {
 }
 
 .card { 
-    background: var(--card-bg); 
-    backdrop-filter: var(--glass);
+    background: var(--card-bg);
     border-radius: 20px; 
     padding: 12px; 
     text-align: center; 
@@ -207,30 +217,9 @@ h1 {
 }
 
 .card:hover {
-    box-shadow: 0 0 25px rgba(145, 70, 255, 0.3);
+    box-shadow: 0 0 25px rgba(144, 70, 255, 0.425);
     border-color: var(--twitch-purple);
     transform: translateY(-5px);
-}
-
-.card-rarity-3 {
-    position: relative;
-}
-
-.card-rarity-3::after {
-    content: '';
-    position: absolute;
-    inset: -2px;
-    background: linear-gradient(45deg, #ffd700, #fff, #ffd700);
-    background-size: 200% 200%;
-    z-index: -1;
-    border-radius: 22px;
-    opacity: 0;
-    transition: opacity 0.3s;
-    animation: titleShine 2s linear infinite;
-}
-
-.card-rarity-3:hover::after {
-    opacity: 0.5;
 }
 
 .card-image-container { 
@@ -245,12 +234,24 @@ h1 {
 .card-image-container::after {
     content: "";
     position: absolute;
-    top: 0;
+    top: -50%;
     left: -150%;
     width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.6s ease-in-out;
+    height: 200%;
+    background: linear-gradient(
+        115deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0) 30%,
+        rgba(255, 255, 255, 0.2) 45%,
+        rgba(255, 255, 255, 0.5) 50%,
+        rgba(255, 255, 255, 0.2) 55%,
+        rgba(255, 255, 255, 0) 70%,
+        transparent 100%
+    );
+    transform: rotate(15deg);
+    transition: all 0.7s cubic-bezier(0.23, 1, 0.32, 1);
+    pointer-events: none;
+    z-index: 5;
 }
 
 .card:hover .card-image-container::after {
@@ -258,30 +259,33 @@ h1 {
 }
 
 .card img.card-art { 
-    width: 100%; 
-    height: 100%; 
+    width: 100%; height: 100%; 
     object-fit: cover; 
-    transition: transform 0.5s ease;
+    transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    transform: translateZ(0) scale(1.01);
 }
 
 .card:hover img.card-art {
-    transform: scale(1.08);
+    animation: cardPulse 5s ease infinite alternate;
 }
 
 .rarity-overlay { 
     position: absolute; 
-    top: 10px; 
+    top: 17.5px; 
     left: 10px; 
-    height: 20px; 
+    height: 25px; 
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8)); 
     z-index: 2;
 }
 
 .type-overlay { 
     position: absolute; 
-    top: 8px; 
-    right: 8px; 
-    height: 32px; 
+    top: 10px; 
+    right: 10px; 
+    height: 35px; 
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8)); 
     z-index: 2;
 }
@@ -296,19 +300,20 @@ h1 {
     justify-content: center;
     line-height: 1.2;
     color: var(--text-main);
+    text-shadow: 0 1px 10px var(--twitch-purple);
 }
 
 .stars-row {
     display: flex;
     justify-content: center;
-    gap: 4px;
+    gap: 15px;
     padding: 8px 0;
-    background: rgba(0,0,0,0.3);
+    background: rgba(0, 0, 0, 0.3);
     border-radius: 8px;
 }
 
-.star { font-size: 1.1rem; }
-.star-gold { color: var(--gold); text-shadow: 0 0 5px rgba(255, 215, 0, 0.5); }
+.star { font-size: 1.9rem; }
+.star-gold { color: var(--gold); text-shadow: 0 0 5px rgb(255, 217, 0); }
 .star-gray { color: var(--gray-star); }
 
 .btn {
@@ -366,6 +371,8 @@ h1 {
 
 .progress-bar-fill {
     height: 100%;
+    position: relative;
+    overflow: hidden;
     background-color: var(--twitch-purple);
     background-image: linear-gradient(
         45deg, 
@@ -378,25 +385,28 @@ h1 {
         transparent
     );
     background-size: 40px 40px;
-    animation: progressSlide 2s linear infinite;
-    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 0 15px rgba(145, 70, 255, 0.5);
+    animation: progressSlide 1s linear infinite;
+    transition: width 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow: 0 0 15px rgba(145, 70, 255, 0.4);
+    border-radius: 10px;
 }
 
-.skeleton-card {
-    background: var(--card-bg);
-    border-radius: 20px;
-    padding: 15px;
-    border: 1px solid var(--border-color);
-    width: 220px;
-    height: 400px;
+.progress-bar-fill::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100px;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent
+    );
+    animation: flowLight 2s ease-in-out infinite;
 }
 
-.skeleton-image {
-    width: 100%;
-    height: 253px;
-    border-radius: 12px;
-    background: linear-gradient(90deg, #16161a 25%, #1f1f24 50%, #16161a 75%);
-    background-size: 400px 100%;
-    animation: shimmer 2.5s linear infinite;
+.progress-bar-fill.finished {
+    animation: progressSlide 1s linear infinite, pulseFin 0.8s ease-in-out;
 }
