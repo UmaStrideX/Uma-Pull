@@ -124,29 +124,29 @@
                     myTwitchId = String(session.user.user_metadata.provider_id);
                     myDisplayName = session.user.user_metadata.display_name || session.user.user_metadata.full_name;
                     
-                    await syncUserDatabase(myTwitchId, myDisplayName, session.user.id);
+                    await supabaseClient.from('users').upsert({ uuid: session.user.id, twitch_id: myTwitchId, display_name: myDisplayName }, { onConflict: 'twitch_id' });
                     
                     document.getElementById('auth-section').classList.add('hidden');
                     document.getElementById('user-section').classList.remove('hidden');
                     
                     const { data } = await supabaseClient.from('collections').select('*').eq('user_id', myTwitchId);
                     myCardsData = data || [];
-                    showMyCollection();
+                    window.showMyCollection();
                     fetchLeaderboards();
                 } else {
                     document.getElementById('auth-section').classList.remove('hidden');
                 }
             } catch (e) {
-                console.error("Erreur chargement UI:", e);
+                console.error(e);
             }
         }
 
-        function showMyCollection() {
+        window.showMyCollection = function() {
             displayedCardsData = [...myCardsData];
             resetViewStates();
             updateProgressBar("Ma Collection");
             renderCollection();
-        }
+        };
 
         function updateProgressBar(titleOverride = null) {
             const total = fullJsonData.length;
@@ -217,16 +217,9 @@
 
             if (window.VanillaTilt) {
                 VanillaTilt.init(document.querySelectorAll(".card-link"), {
-                    max: 15,
-                    speed: 400,
-                    glare: true,
-                    "max-glare": 0.2
+                    max: 15, speed: 400, glare: true, "max-glare": 0.2
                 });
             }
-        }
-
-        async function syncUserDatabase(twitchId, displayName, uuid) {
-            await supabaseClient.from('users').upsert({ uuid, twitch_id: twitchId, display_name: displayName }, { onConflict: 'twitch_id' });
         }
 
         async function fetchLeaderboards() {
@@ -237,7 +230,7 @@
             const topMlb = [...data].sort((a, b) => b.total_mlb - a.total_mlb);
 
             const formatLine = (u, key, unit) => `
-                <div class="lb-clickable" onclick="viewUserCollection('${u.display_name.replace(/'/g, "\\'")}')">
+                <div class="lb-clickable" onclick="window.viewUserCollection('${u.display_name.replace(/'/g, "\\'")}')">
                     <b>${u.display_name}</b> : ${u[key]} ${unit}
                 </div>`;
 
@@ -254,7 +247,7 @@
                     <h3 style="color:var(--twitch-purple)">${title}</h3>
                     <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
                         ${list.map((u, i) => `
-                            <tr class="lb-row-clickable" onclick="viewUserCollection('${u.display_name.replace(/'/g, "\\'")}')">
+                            <tr class="lb-row-clickable" onclick="window.viewUserCollection('${u.display_name.replace(/'/g, "\\'")}')">
                                 <td style="padding:8px 0;">#${i+1}</td>
                                 <td style="padding:8px 0; font-weight:bold;">${u.display_name}</td>
                                 <td style="padding:8px 0; text-align:right;">${u[key]} ${unit}</td>
@@ -266,9 +259,9 @@
             container.innerHTML = createTable('Top Collections', colData, 'total_cards', 'cartes') + createTable('Top MLB', mlbData, 'total_mlb', 'MLB');
         }
 
-        async function viewUserCollection(displayName) {
+        window.viewUserCollection = async function(displayName) {
             if (displayName === myDisplayName) {
-                showMyCollection();
+                window.showMyCollection();
                 return;
             }
 
@@ -287,7 +280,7 @@
             updateProgressBar(`Collection de ${displayName}`);
             renderCollection();
             window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+        };
 
         function resetViewStates() {
             document.getElementById('main-collection-view').classList.remove('hidden');
@@ -308,7 +301,7 @@
             document.getElementById('progress-fill').style.width = "0%";
         };
 
-        document.getElementById('btn-back-home').onclick = showMyCollection;
+        document.getElementById('btn-back-home').onclick = () => window.showMyCollection();
         document.getElementById('search-name').oninput = renderCollection;
         document.getElementById('filter-type').onchange = renderCollection;
         document.getElementById('filter-rarity').onchange = renderCollection;
