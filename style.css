@@ -28,11 +28,11 @@
 
 @keyframes gridPulse {
     0% {
-        background-size: 80px 140px;
+        background-size: 100px 100px;
         opacity: 0.6;
     }
     100% {
-        background-size: 84px 144px;
+        background-size: 500px 500px;
         opacity: 0.9;
     }
 }
