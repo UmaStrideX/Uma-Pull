@@ -1,0 +1,394 @@
+:root {
+    --twitch-purple: #9146ff;
+    --twitch-purple-dark: #6441a5;
+    --bg-dark: #060608;
+    --card-bg: rgba(10, 10, 15, 0.8);
+    --gold: #ffd700;
+    --gold-text: #fffdca;
+    --gray-star: #3a3a40;
+    --input-bg: rgba(5, 5, 10, 0.9);
+    --text-main: #f5f5f7;
+    --text-muted: #adadb8;
+    --border-color: rgba(145, 70, 255, 0.15);
+    
+    --holo-glow: rgba(145, 70, 255, 0.15);
+    --grid-color: rgba(145, 70, 255, 0.04);
+    --line-color: rgba(145, 70, 255, 0.02);
+}
+
+@keyframes titleShine {
+    from { background-position-x: 0%; }
+    to { background-position-x: 100%; }
+}
+
+@keyframes scanline {
+    0% { transform: translateY(-10vh); }
+    100% { transform: translateY(95vh); }
+}
+
+@keyframes progressSlide {
+    from { background-position: 0 0; }
+    to { background-position: 40px 0; }
+}
+
+@keyframes flowLight {
+    0% { left: 0%; }
+    100% { left: 100%; }
+}
+
+@keyframes pulseFin {
+    0% { box-shadow: 0 0 5px rgba(145, 70, 255, 0.5); filter: brightness(1); }
+    50% { box-shadow: 0 0 25px rgba(145, 70, 255, 1), 0 0 10px rgba(255, 255, 255, 0.8); filter: brightness(1.4); }
+    100% { box-shadow: 0 0 5px rgba(145, 70, 255, 0.5); filter: brightness(1); }
+}
+
+@keyframes cardPulse {
+    0% {transform: scale(1)}
+    100% {transform: scale(1.03)}
+}
+
+body { 
+    font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--bg-dark); 
+    color: var(--text-main); 
+    margin: 0;
+    padding: 20px;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    position: relative;
+    overflow-x: hidden;
+    background-image: 
+        radial-gradient(circle at 0% 0%, rgba(145, 70, 255, 0.12) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(202, 167, 255, 0.12) 0%, transparent 0%),
+        radial-gradient(circle at 100% 100%, rgba(145, 70, 255, 0.12) 0%, transparent 50%);
+    background-attachment: fixed;
+}
+
+body::before {
+    content: "";
+    position: fixed;
+    top: -10%; left: -10%;
+    width: 120%; height: 120%;
+    z-index: -1;
+    background-image: 
+        linear-gradient(var(--grid-color) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+    background-size: 100px 100px;
+    background-position: center;
+    -webkit-mask-image: radial-gradient(circle at 50% 50%, black 10%, transparent 80%);
+    mask-image: radial-gradient(circle at 50% 50%, black 10%, transparent 80%);
+    animation: gridPulse 1s ease-in-out infinite alternate;
+}
+
+body::after {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 150px;
+    background: linear-gradient(to bottom, transparent 0%, rgba(102, 0, 255, 0.04) 50%, transparent 100%);
+    z-index: -1;
+    animation: scanline 3s linear infinite alternate;
+    pointer-events: none;
+}
+
+.container { max-width: 1300px; margin: auto; position: relative; z-index: 1; }
+
+.header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    margin-bottom: 30px;
+    padding: 15px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+h1 { 
+    font-size: 2.2rem; 
+    font-weight: 800;
+    letter-spacing: -1px;
+    background: linear-gradient(90deg, #6600ff 0%, #9146ff 40%, #b388ff 50%, #9146ff 60%, #6600ff 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: titleShine 5s ease-in-out infinite alternate;
+    margin: 0;
+}
+
+.filter-bar {
+    background: var(--card-bg);
+    backdrop-filter: var(--glass);
+    padding: 20px;
+    border-radius: 16px;
+    margin-bottom: 40px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    border: 1px solid var(--border-color);
+    align-items: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.search-group {
+    flex: 1;
+    min-width: 250px;
+    position: relative;
+}
+
+.search-input {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    color: white;
+    padding: 12px 15px;
+    padding-left: 40px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    outline: none;
+    transition: all 0.2s;
+    box-sizing: border-box;
+}
+
+.search-input:focus { 
+    border-color: var(--twitch-purple); 
+    box-shadow: 0 0 0 3px rgba(145, 70, 255, 0.1);
+}
+
+.filter-select {
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    color: white;
+    padding: 12px 15px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.filter-select:hover {
+    border-color: var(--twitch-purple);
+}
+
+.grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); 
+    gap: 30px; 
+    align-items: start;
+}
+
+.card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    perspective: 1000px;
+}
+
+.card { 
+    background: var(--card-bg);
+    border-radius: 20px; 
+    padding: 12px; 
+    text-align: center; 
+    border: 1px solid rgba(255, 255, 255, 0.05); 
+    position: relative; 
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    height: 100%;
+    box-sizing: border-box;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+}
+
+.card:hover {
+    box-shadow: 0 0 25px rgba(144, 70, 255, 0.425);
+    border-color: var(--twitch-purple);
+    transform: translateY(-5px);
+}
+
+.card-image-container { 
+    position: relative; 
+    width: 100%;
+    aspect-ratio: 180 / 250;
+    overflow: hidden;
+    border-radius: 12px;
+    background: #000;
+}
+
+.card-image-container::after {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -150%;
+    width: 100%;
+    height: 200%;
+    background: linear-gradient(
+        115deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0) 30%,
+        rgba(255, 255, 255, 0.2) 45%,
+        rgba(255, 255, 255, 0.5) 50%,
+        rgba(255, 255, 255, 0.2) 55%,
+        rgba(255, 255, 255, 0) 70%,
+        transparent 100%
+    );
+    transform: rotate(15deg);
+    transition: all 0.7s cubic-bezier(0.23, 1, 0.32, 1);
+    pointer-events: none;
+    z-index: 5;
+}
+
+.card:hover .card-image-container::after {
+    left: 150%;
+}
+
+.card img.card-art { 
+    width: 100%; height: 100%; 
+    object-fit: cover; 
+    transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    transform: translateZ(0) scale(1.01);
+}
+
+.card:hover img.card-art {
+    animation: cardPulse 5s ease infinite alternate;
+}
+
+.rarity-overlay { 
+    position: absolute; 
+    top: 17.5px; 
+    left: 10px; 
+    height: 25px; 
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8)); 
+    z-index: 2;
+}
+
+.type-overlay { 
+    position: absolute; 
+    top: 10px; 
+    right: 10px; 
+    height: 35px; 
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8)); 
+    z-index: 2;
+}
+
+.card-name { 
+    font-size: 0.9rem; 
+    font-weight: 700;
+    margin: 15px 0 10px 0; 
+    height: 40px;
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    line-height: 1.2;
+    color: var(--text-main);
+    text-shadow: 0 1px 10px var(--twitch-purple);
+}
+
+.stars-row {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    padding: 8px 0;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+}
+
+.star { font-size: 1.9rem; }
+.star-gold { color: var(--gold); text-shadow: 0 0 5px rgb(255, 217, 0); }
+.star-gray { color: var(--gray-star); }
+
+.btn {
+    background: linear-gradient(135deg, var(--twitch-purple-dark), var(--twitch-purple));
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 12px 26px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+    box-shadow: 0 4px 15px rgba(145, 70, 255, 0.2);
+}
+
+.btn:hover { 
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+    box-shadow: 0 0 20px rgba(145, 70, 255, 0.4);
+}
+
+#btn-logout { background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); box-shadow: none; }
+
+.hidden { display: none !important; }
+
+.progress-section {
+    margin-bottom: 25px;
+    background: var(--card-bg);
+    backdrop-filter: var(--glass);
+    padding: 20px;
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.progress-label { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; }
+.progress-percentage { font-size: 1.1rem; font-weight: 800; color: var(--twitch-purple); }
+
+.progress-bar-bg {
+    width: 100%;
+    height: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.progress-bar-fill {
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+    background-color: var(--twitch-purple);
+    background-image: linear-gradient(
+        45deg, 
+        rgba(255, 255, 255, 0.15) 25%, 
+        transparent 25%, 
+        transparent 50%, 
+        rgba(255, 255, 255, 0.15) 50%, 
+        rgba(255, 255, 255, 0.15) 75%, 
+        transparent 75%, 
+        transparent
+    );
+    background-size: 40px 40px;
+    animation: progressSlide 1s linear infinite;
+    transition: width 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow: 0 0 15px rgba(145, 70, 255, 0.4);
+    border-radius: 10px;
+}
+
+.progress-bar-fill::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100px;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent
+    );
+    animation: flowLight 2s ease-in-out infinite;
+}
+
+.progress-bar-fill.finished {
+    animation: progressSlide 1s linear infinite, pulseFin 0.8s ease-in-out;
+}
