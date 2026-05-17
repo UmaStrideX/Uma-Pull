@@ -219,11 +219,12 @@
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (session) {
                 document.getElementById('btn-show-leaderboard').classList.remove('hidden');
+                document.getElementById('btn-back-home').classList.remove('hidden');
             } else {
                 document.getElementById('btn-show-leaderboard').classList.add('hidden');
+                document.getElementById('btn-back-home').classList.add('hidden');
             }
             
-            document.getElementById('btn-back-home').classList.remove('hidden');
 
             updateProgressBar();
             renderCollection();
@@ -278,7 +279,7 @@
                         <div class="card-image-container">
                             <img src="${RARITY_ICONS[item.card_id.toString()[0]]}" class="rarity-overlay">
                             <img src="${TYPE_ICONS[info.type]}" class="type-overlay">
-                            <img src="https://media.gametora.com/umamusume/supports/full/small/${item.card_id}.png" class="card-art" loading="lazy">
+                            <img src="https://gametora.com/images/umamusume/supports/tex_support_card_${item.card_id}.png" class="card-art" loading="lazy">
                         </div>
                         <div class="card-name">${info.char_name}</div>
                         <div class="stars-row">${stars}</div>
