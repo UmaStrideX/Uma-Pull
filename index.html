@@ -10,84 +10,81 @@
 <body>
 
     <div class="container">
-        <div id="auth-section" class="header">
+        <div class="header">
             <h1>UmaPull</h1>
-            <button id="btn-login" class="btn">Connexion Twitch</button>
+            <div style="display: flex; gap: 10px;">
+                <button id="btn-show-leaderboard" class="btn hidden">Classements</button>
+                <button id="btn-back-home" class="btn hidden">Ma Collection</button>
+                <button id="btn-login" class="btn">Connexion Twitch</button>
+                <button id="btn-logout" class="btn hidden">Déconnexion</button>
+            </div>
         </div>
 
-        <div id="user-section" class="hidden">
-            <div class="header">
-                <h1>UmaPull</h1>
-                <div style="display: flex; gap: 10px;">
-                    <button id="btn-show-leaderboard" class="btn">Classements</button>
-                    <button id="btn-back-home" class="btn hidden">Ma Collection</button>
-                    <button id="btn-logout" class="btn">Déconnexion</button>
+        <div id="top3-widget" class="progress-section">
+            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 200px;">
+                    <h3 style="margin-top:0; color:var(--gold); font-size: 0.9rem; text-transform: uppercase;">Top 3 Collection</h3>
+                    <div id="rank-collection-mini"></div>
+                </div>
+                <div style="flex: 1; min-width: 200px;">
+                    <h3 style="margin-top:0; color:var(--twitch-purple); font-size: 0.9rem; text-transform: uppercase;">Top 3 MLB</h3>
+                    <div id="rank-mlb-mini"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="full-leaderboard" class="hidden">
+            <div class="filter-bar">
+                <h2 style="margin:0; font-size: 1.2rem;">Classement Général</h2>
+                <div class="search-group" style="margin-left: auto; max-width: 300px;">
+                    <input type="text" id="search-user" class="search-input" placeholder="Rechercher un joueur...">
+                </div>
+            </div>
+            <div id="leaderboard-tables" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 40px;"></div>
+        </div>
+
+        <div id="main-collection-view">
+            <div class="progress-section">
+                <div class="progress-header">
+                    <span class="progress-label" id="progress-text">Chargement...</span>
+                    <span class="progress-percentage" id="progress-percent">0%</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div id="progress-fill" class="progress-bar-fill"></div>
                 </div>
             </div>
 
-            <div id="top3-widget" class="progress-section">
-                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-                    <div style="flex: 1; min-width: 200px;">
-                        <h3 style="margin-top:0; color:var(--gold); font-size: 0.9rem; text-transform: uppercase;">Top 3 Collection</h3>
-                        <div id="rank-collection-mini"></div>
-                    </div>
-                    <div style="flex: 1; min-width: 200px;">
-                        <h3 style="margin-top:0; color:var(--twitch-purple); font-size: 0.9rem; text-transform: uppercase;">Top 3 MLB</h3>
-                        <div id="rank-mlb-mini"></div>
-                    </div>
+            <div class="filter-bar">
+                <div class="search-group">
+                    <input type="text" id="search-name" class="search-input" placeholder="Rechercher une carte...">
                 </div>
+                
+                <select id="filter-type" class="filter-select">
+                    <option value="all">Tous les types</option>
+                    <option value="speed">Speed</option>
+                    <option value="stamina">Stamina</option>
+                    <option value="power">Power</option>
+                    <option value="guts">Guts</option>
+                    <option value="intelligence">Wit</option>
+                    <option value="friend">Friend</option>
+                    <option value="group">Group</option>
+                </select>
+
+                <select id="filter-rarity" class="filter-select">
+                    <option value="all">Toutes les raretés</option>
+                    <option value="3">SSR</option>
+                    <option value="2">SR</option>
+                    <option value="1">R</option>
+                </select>
+
+                <select id="filter-status" class="filter-select">
+                    <option value="all">Tous les status</option>
+                    <option value="not-mlb">Incomplètes (< 4★)</option>
+                    <option value="mlb">Max Limit Break (4★)</option>
+                </select>
             </div>
 
-            <div id="full-leaderboard" class="hidden">
-                <div class="filter-bar">
-                    <h2 style="margin:0; font-size: 1.2rem;">Classement Général</h2>
-                </div>
-                <div id="leaderboard-tables" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 40px;"></div>
-            </div>
-
-            <div id="main-collection-view">
-                <div class="progress-section">
-                    <div class="progress-header">
-                        <span class="progress-label" id="progress-text">Chargement...</span>
-                        <span class="progress-percentage" id="progress-percent">0%</span>
-                    </div>
-                    <div class="progress-bar-bg">
-                        <div id="progress-fill" class="progress-bar-fill"></div>
-                    </div>
-                </div>
-
-                <div class="filter-bar">
-                    <div class="search-group">
-                        <input type="text" id="search-name" class="search-input" placeholder="Rechercher une carte...">
-                    </div>
-                    
-                    <select id="filter-type" class="filter-select">
-                        <option value="all">Tous les types</option>
-                        <option value="speed">Speed</option>
-                        <option value="stamina">Stamina</option>
-                        <option value="power">Power</option>
-                        <option value="guts">Guts</option>
-                        <option value="intelligence">Wit</option>
-                        <option value="friend">Friend</option>
-                        <option value="group">Group</option>
-                    </select>
-
-                    <select id="filter-rarity" class="filter-select">
-                        <option value="all">Toutes les raretés</option>
-                        <option value="3">SSR</option>
-                        <option value="2">SR</option>
-                        <option value="1">R</option>
-                    </select>
-
-                    <select id="filter-status" class="filter-select">
-                        <option value="all">Tous les status</option>
-                        <option value="not-mlb">Incomplètes (< 4★)</option>
-                        <option value="mlb">Max Limit Break (4★)</option>
-                    </select>
-                </div>
-
-                <div id="collection-grid" class="grid"></div>
-            </div>
+            <div id="collection-grid" class="grid"></div>
         </div>
     </div>
 
@@ -102,6 +99,7 @@
         let userCardsData = [];
         let fullJsonData = [];
         let myTwitchId = null;
+        let cachedLeaderboardData = [];
 
         const TYPE_ICONS = {
             'speed': 'https://gametora.com/images/umamusume/icons/utx_ico_obtain_00.png',
@@ -132,8 +130,9 @@
 
                 await syncUserDatabase(myTwitchId, displayName, userUuid);
 
-                document.getElementById('auth-section').classList.add('hidden');
-                document.getElementById('user-section').classList.remove('hidden');
+                document.getElementById('btn-login').classList.add('hidden');
+                document.getElementById('btn-logout').classList.remove('hidden');
+                document.getElementById('btn-show-leaderboard').classList.remove('hidden');
 
                 const { data } = await supabaseClient.from('collections').select('*').eq('user_id', myTwitchId);
                 userCardsData = data || [];
@@ -142,7 +141,11 @@
                 renderCollection();
                 fetchLeaderboards();
             } else {
-                document.getElementById('auth-section').classList.remove('hidden');
+                document.getElementById('btn-login').classList.remove('hidden');
+                document.getElementById('btn-logout').classList.add('hidden');
+                document.getElementById('main-collection-view').classList.add('hidden');
+                document.getElementById('full-leaderboard').classList.remove('hidden');
+                fetchLeaderboards();
             }
         }
 
@@ -154,6 +157,8 @@
             const { data } = await supabaseClient.from('leaderboards').select('*');
             if (!data) return;
 
+            cachedLeaderboardData = data;
+
             const topCol = [...data].sort((a, b) => b.total_cards - a.total_cards);
             const topMlb = [...data].sort((a, b) => b.total_mlb - a.total_mlb);
 
@@ -164,6 +169,19 @@
 
             document.getElementById('rank-collection-mini').innerHTML = topCol.slice(0, 3).map(u => formatLineMini(u, 'total_cards', 'cartes')).join('');
             document.getElementById('rank-mlb-mini').innerHTML = topMlb.slice(0, 3).map(u => formatLineMini(u, 'total_mlb', 'MLB')).join('');
+
+            filterAndRenderLeaderboards();
+        }
+
+        function filterAndRenderLeaderboards() {
+            const searchUserTerm = document.getElementById('search-user').value.toLowerCase();
+            
+            const filteredData = cachedLeaderboardData.filter(u => 
+                u.display_name.toLowerCase().includes(searchUserTerm)
+            );
+
+            const topCol = [...filteredData].sort((a, b) => b.total_cards - a.total_cards);
+            const topMlb = [...filteredData].sort((a, b) => b.total_mlb - a.total_mlb);
 
             renderFullLeaderboard(topCol, topMlb);
         }
@@ -197,7 +215,14 @@
             document.getElementById('main-collection-view').classList.remove('hidden');
             document.getElementById('full-leaderboard').classList.add('hidden');
             document.getElementById('top3-widget').classList.add('hidden');
-            document.getElementById('btn-show-leaderboard').classList.remove('hidden');
+            
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                document.getElementById('btn-show-leaderboard').classList.remove('hidden');
+            } else {
+                document.getElementById('btn-show-leaderboard').classList.add('hidden');
+            }
+            
             document.getElementById('btn-back-home').classList.remove('hidden');
 
             updateProgressBar();
@@ -276,6 +301,7 @@
         document.getElementById('filter-type').onchange = renderCollection;
         document.getElementById('filter-rarity').onchange = renderCollection;
         document.getElementById('filter-status').onchange = renderCollection;
+        document.getElementById('search-user').oninput = filterAndRenderLeaderboards;
 
         document.getElementById('btn-login').onclick = () => {
             supabaseClient.auth.signInWithOAuth({ provider: 'twitch', options: { redirectTo: window.location.origin + window.location.pathname } });
